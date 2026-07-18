@@ -1,4 +1,4 @@
-name: Monitor Supersubsidio y Supersalud
+name: Monitor Supersalud y Supersubsidio
 
 on:
   workflow_dispatch:
@@ -6,15 +6,18 @@ on:
   schedule:
     - cron: "0 * * * *"
 
+permissions:
+  contents: write
+
 jobs:
-  monitor:
+  ejecutar-monitor:
     runs-on: ubuntu-latest
 
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Instalar Python
+      - name: Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -24,6 +27,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Ejecutar automatización
+      - name: Ejecutar monitor
+        env:
+          SMTP_SERVIDOR: ${{ secrets.SMTP_SERVIDOR }}
+          SMTP_PUERTO: ${{ secrets.SMTP_PUERTO }}
+          CORREO_USUARIO: ${{ secrets.CORREO_USUARIO }}
+          CORREO_CONTRASENA: ${{ secrets.CORREO_CONTRASENA }}
+          CORREO_DESTINATARIO: ${{ secrets.CORREO_DESTINATARIO }}
+        run: python monitor.py
+
+      - name: Guardar estado actualizado
         run: |
-          python monitor.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add estado.json
+
+          if git diff --cached --quiet; then
+            echo "No hubo cambios en estado.json"
+          else
+            git commit -m "Actualiza estado del monitor"
+            git push
+          fi
