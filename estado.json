@@ -1,3 +1,20 @@
 {
-    "archivos": []
+    "supersubsidio": {
+        "url": "https://www.ssf.gov.co/documents/d/guest/informacion-poblacional-2026_mayo",
+        "hash": "63e286874fb0a95c0867fad40f427c025a14d3b87db14c5a2dd3b809fc5db07c"
+    },
+    "supersalud": {
+        "EPS": {
+            "id": "760d95890d79460da9715b83b9d27933",
+            "hash": "2308532fa0181279de412a63d26f79e35ad3e5f548fa10a4ebd8b44699eb4ade"
+        },
+        "IPS": {
+            "id": "b6cfbe5d6f4745b9840284a04333ef20",
+            "hash": "b7c2d3e24e97bc5e82516f68a4d6ff724f3b1193652a73684a9bde44bb0e93ff"
+        },
+        "EMP": {
+            "id": "d9f5b7c38d674b6f9de7d8dd8922da50",
+            "hash": "512b08f2ca8cafc794877df4b6abfc7de7c6d99eedb8f7367165b0dcbbfda904"
+        }
+    }
 }

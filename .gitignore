@@ -1,0 +1,14 @@
+# Archivos descargados automáticamente
+descargas/
+
+# Credenciales o variables privadas
+.env
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
+
+# Archivos de pruebas locales
+prueba_correo.py
+probar_descarga.py
+probar_supersalud.py
