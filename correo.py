@@ -7,6 +7,7 @@ Los archivos demasiado grandes se notifican mediante
 su enlace directo de descarga.
 """
 
+import mimetypes
 import os
 import smtplib
 from email.message import EmailMessage
@@ -47,6 +48,7 @@ def obtener_configuracion_correo():
         configuracion["puerto"] = int(
             configuracion["puerto"]
         )
+
     except ValueError as error:
         raise ValueError(
             "SMTP_PUERTO debe ser un número entero."
@@ -75,12 +77,67 @@ def obtener_destinatarios(destinatario):
     return destinatarios
 
 
+def obtener_tipo_adjunto(ruta):
+    """
+    Determina el tipo MIME del archivo según su extensión.
+
+    Esto permite adjuntar correctamente archivos XLSX, XLS,
+    CSV, ZIP u otros formatos.
+    """
+
+    tipo_mime, _ = mimetypes.guess_type(
+        ruta.name
+    )
+
+    if tipo_mime and "/" in tipo_mime:
+        maintype, subtype = tipo_mime.split(
+            "/",
+            1,
+        )
+
+        return maintype, subtype
+
+    return "application", "octet-stream"
+
+
+def obtener_fecha_actualizacion(resultado):
+    """
+    Obtiene una fecha de actualización compatible
+    con las distintas fuentes.
+
+    Prioriza la fecha de modificación. Si no está disponible,
+    utiliza fecha_actualizacion.
+    """
+
+    fecha_modificacion = resultado.get(
+        "fecha_modificacion",
+        "",
+    )
+
+    if fecha_modificacion:
+        return fecha_modificacion
+
+    fecha_actualizacion = resultado.get(
+        "fecha_actualizacion",
+        "",
+    )
+
+    if (
+        fecha_actualizacion
+        and fecha_actualizacion != "No disponible"
+    ):
+        return fecha_actualizacion
+
+    return ""
+
+
 def crear_mensaje(resultado, configuracion):
     """
     Crea un correo para una sola alerta.
 
-    Adjunta el archivo cuando cumple el límite de tamaño.
-    Cuando no puede adjuntarse, incluye el enlace de descarga.
+    Incluye el periodo de la información, las fechas disponibles,
+    el enlace de descarga y el archivo adjunto cuando no supera
+    el límite establecido.
     """
 
     mensaje = EmailMessage()
@@ -105,9 +162,23 @@ def crear_mensaje(resultado, configuracion):
         "Cambio detectado",
     )
 
-    fecha = resultado.get(
-        "fecha_actualizacion",
-        "Fecha no disponible",
+    periodo = resultado.get(
+        "periodo",
+        "",
+    )
+
+    fecha_creacion = resultado.get(
+        "fecha_creacion",
+        "",
+    )
+
+    fecha_modificacion = resultado.get(
+        "fecha_modificacion",
+        "",
+    )
+
+    fecha_actualizacion = obtener_fecha_actualizacion(
+        resultado
     )
 
     url = resultado.get(
@@ -127,25 +198,37 @@ def crear_mensaje(resultado, configuracion):
     mensaje["From"] = configuracion["usuario"]
     mensaje["To"] = ", ".join(destinatarios)
     mensaje["Subject"] = (
-        f"Alerta de nueva información: {encabezado}"
+        f"{estado_cambio}: {encabezado}"
     )
 
     ruta = None
     archivo_adjuntado = False
     motivo_sin_adjunto = ""
 
-    ruta_resultado = resultado.get("ruta")
+    ruta_resultado = resultado.get(
+        "ruta"
+    )
 
     if ruta_resultado:
         ruta = Path(ruta_resultado)
 
         if not ruta.exists():
             motivo_sin_adjunto = (
-                "El archivo no se encontró en la carpeta local."
+                "El archivo no se encontró "
+                "en la carpeta local."
+            )
+
+        elif not ruta.is_file():
+            motivo_sin_adjunto = (
+                "La ruta proporcionada no corresponde "
+                "a un archivo válido."
             )
 
         elif ruta.stat().st_size > LIMITE_ADJUNTO_BYTES:
-            tamano_mb = ruta.stat().st_size / (1024 * 1024)
+            tamano_mb = (
+                ruta.stat().st_size
+                / (1024 * 1024)
+            )
 
             motivo_sin_adjunto = (
                 f"El archivo pesa aproximadamente "
@@ -166,23 +249,60 @@ def crear_mensaje(resultado, configuracion):
         "",
         "El monitor detectó información nueva o actualizada.",
         "",
-        f"Entidad: {encabezado}",
-        f"Estado: {estado_cambio}",
-        f"Archivo: {nombre}",
-        f"Fecha de actualización: {fecha}",
-        f"Enlace de descarga: {url}",
-        "",
-        "-" * 60,
-        "",
+        f"Entidad: {entidad}",
     ]
+
+    if categoria:
+        lineas.append(
+            f"Categoría: {categoria}"
+        )
+
+    lineas.extend(
+        [
+            f"Estado: {estado_cambio}",
+            f"Archivo: {nombre}",
+        ]
+    )
+
+    if periodo:
+        lineas.append(
+            f"Periodo de la información: {periodo}"
+        )
+
+    if fecha_creacion:
+        lineas.append(
+            f"Fecha de creación: {fecha_creacion}"
+        )
+
+    if fecha_modificacion:
+        lineas.append(
+            f"Fecha de modificación: {fecha_modificacion}"
+        )
+
+    elif fecha_actualizacion:
+        lineas.append(
+            f"Fecha de actualización: "
+            f"{fecha_actualizacion}"
+        )
+
+    lineas.extend(
+        [
+            f"Enlace de descarga: {url}",
+            "",
+            "-" * 60,
+            "",
+        ]
+    )
 
     if archivo_adjuntado:
         lineas.extend(
             [
-                "El archivo se encuentra adjunto a este correo.",
+                "El archivo se encuentra adjunto "
+                "a este correo.",
                 "",
             ]
         )
+
     else:
         lineas.extend(
             [
@@ -199,18 +319,21 @@ def crear_mensaje(resultado, configuracion):
         "Mensaje generado automáticamente."
     )
 
-    mensaje.set_content("\n".join(lineas))
+    mensaje.set_content(
+        "\n".join(lineas)
+    )
 
     if archivo_adjuntado and ruta is not None:
         contenido = ruta.read_bytes()
 
+        maintype, subtype = obtener_tipo_adjunto(
+            ruta
+        )
+
         mensaje.add_attachment(
             contenido,
-            maintype="application",
-            subtype=(
-                "vnd.openxmlformats-officedocument."
-                "spreadsheetml.sheet"
-            ),
+            maintype=maintype,
+            subtype=subtype,
             filename=ruta.name,
         )
 
@@ -236,15 +359,17 @@ def enviar_mensaje(mensaje, configuracion):
             configuracion["contrasena"],
         )
 
-        servidor.send_message(mensaje)
+        servidor.send_message(
+            mensaje
+        )
 
 
 def enviar_correo(resultados):
     """
     Envía un correo independiente por cada alerta.
 
-    Así se evita que varios archivos adjuntos juntos
-    superen el límite de tamaño de Gmail.
+    Esto evita que varios archivos adjuntos juntos
+    superen el límite de tamaño del proveedor de correo.
     """
 
     if not resultados:
@@ -252,6 +377,7 @@ def enviar_correo(resultados):
             "\nNo hay archivos nuevos o actualizados. "
             "No se enviará correo."
         )
+
         return False
 
     configuracion = obtener_configuracion_correo()
@@ -273,7 +399,9 @@ def enviar_correo(resultados):
         identificador = entidad
 
         if categoria:
-            identificador += f" - {categoria}"
+            identificador += (
+                f" - {categoria}"
+            )
 
         try:
             mensaje, archivo_adjuntado = crear_mensaje(
@@ -293,13 +421,14 @@ def enviar_correo(resultados):
 
             if archivo_adjuntado:
                 print(
-                    f"Correo enviado correctamente con adjunto: "
-                    f"{identificador}"
+                    "Correo enviado correctamente "
+                    f"con adjunto: {identificador}"
                 )
+
             else:
                 print(
-                    f"Correo enviado correctamente con enlace: "
-                    f"{identificador}"
+                    "Correo enviado correctamente "
+                    f"con enlace: {identificador}"
                 )
 
             correos_enviados += 1
@@ -317,21 +446,32 @@ def enviar_correo(resultados):
                 f"No se pudo enviar el correo de "
                 f"{identificador}."
             )
+
             print(
-                f"{type(error).__name__}: {error}"
+                f"{type(error).__name__}: "
+                f"{error}"
             )
 
     print("\n" + "-" * 70)
     print("RESUMEN DEL ENVÍO DE CORREOS")
     print("-" * 70)
-    print(f"Correos enviados: {correos_enviados}")
-    print(f"Errores: {len(errores)}")
+
+    print(
+        f"Correos enviados: "
+        f"{correos_enviados}"
+    )
+
+    print(
+        f"Errores: "
+        f"{len(errores)}"
+    )
 
     if errores:
         for error in errores:
             print(
                 f"- {error['identificador']}: "
-                f"{error['tipo']} - {error['mensaje']}"
+                f"{error['tipo']} - "
+                f"{error['mensaje']}"
             )
 
     return correos_enviados > 0
