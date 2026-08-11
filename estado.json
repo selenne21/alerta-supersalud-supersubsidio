@@ -7,12 +7,12 @@
     },
     "supersalud": {
         "EPS": {
-            "id": "42226441d3564f7394ed35a2f8b97962",
-            "hash": "c912280bf76088ad79e593fdd6abd08bc8cf09552b5339addaa5c878d739a43b",
-            "periodo": "2026-05",
-            "created": 1783097147110,
-            "modified": 1783097480567,
-            "titulo": "Catálogo de información financiera EPS del régimen contributivo y subsidiado mayo 2026"
+            "id": "0ea48cd7cef64d75acbaedbdc8539785",
+            "hash": "ae48c4fcbb13361192d28960ba8e63434bc3316c3c0c03f3076405f311b8e6c1",
+            "periodo": "2026-06",
+            "created": 1786461899248,
+            "modified": 1786462319255,
+            "titulo": "Catálogo de información financiera EPS del régimen contributivo y subsidiado junio 2026"
         },
         "IPS": {
             "id": "b6cfbe5d6f4745b9840284a04333ef20",
