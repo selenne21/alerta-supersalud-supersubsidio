@@ -15,20 +15,20 @@
             "titulo": "Catálogo de información financiera EPS del régimen contributivo y subsidiado junio 2026"
         },
         "IPS": {
-            "id": "b6cfbe5d6f4745b9840284a04333ef20",
-            "hash": "b7c2d3e24e97bc5e82516f68a4d6ff724f3b1193652a73684a9bde44bb0e93ff",
-            "periodo": "2025-12",
-            "created": 1774561768667,
-            "modified": 1774562302457,
-            "titulo": "Catálogo de información financiera de las Instituciones Prestadoras de Servicios de Salud (IPS) Privadas - Segundo Semestre 2025"
+            "id": "b39b5fad9b0b403db08be6392262aa15",
+            "hash": "8ce0777d441c0bb691a3d6493c4c7f924ecd92ee41ea21c1853b0921ce51a656",
+            "periodo": "2026-06",
+            "created": 1786466376273,
+            "modified": 1786466876276,
+            "titulo": "Catálogo de información financiera de las Instituciones Prestadoras de Servicios de Salud (IPS) Privadas - Primer Semestre 2026"
         },
         "EMP": {
-            "id": "d9f5b7c38d674b6f9de7d8dd8922da50",
-            "hash": "512b08f2ca8cafc794877df4b6abfc7de7c6d99eedb8f7367165b0dcbbfda904",
-            "periodo": "2026-03",
-            "created": 1777049123300,
-            "modified": 1777049380713,
-            "titulo": "Catálogo de información financiera de Entidades de Medicina Prepagada (EMP) y Servicios de Ambulancia Prepagada (SAP), Primer Trimestre 2026"
+            "id": "e115043a97b0409ba6517ff8e555c381",
+            "hash": "2abd27cafc6cf435fa1b44d16e5dfa5277845bca6ac8d36d58b2f013cdba7b54",
+            "periodo": "2026-06",
+            "created": 1786464828973,
+            "modified": 1786465161094,
+            "titulo": "Catálogo de información financiera de Entidades de Medicina Prepagada (EMP) y Servicios de Ambulancia Prepagada (SAP), Segundo Trimestre 2026"
         }
     }
 }
