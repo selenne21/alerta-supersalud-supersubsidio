@@ -1,5 +1,4 @@
-"""Configuración general de la automatización."""
-
+"""Configuración general de la automatización."""#guarda información para que las otras areas lo utilicen
 # Página oficial de Supersubsidio
 URL_SUPERSUBSIDIO = "https://www.ssf.gov.co/poblacional"
 

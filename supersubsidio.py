@@ -11,19 +11,19 @@ Criterio de selección:
 5. Comparar la URL y el hash SHA-256 para detectar cambios.
 """
 
-from pathlib import Path
-from urllib.parse import unquote, urljoin
-import hashlib
-import re
-import unicodedata
+from pathlib import Path # la utilizamos para rutas y carpetas 
+from urllib.parse import unquote, urljoin #Trabajar con URL
+import hashlib #calculamos la huella digital de archivo
+import re # Buscar patrones dentro de textos
+import unicodedata #normalizar texto 
 
-import requests
-from bs4 import BeautifulSoup
+import requests # permite que python haga solicitudes por internet
+from bs4 import BeautifulSoup # lee la pagina
 
 from config import TIMEOUT, URL_SUPERSUBSIDIO
 from estado import cargar_estado, guardar_estado
 
-
+# identifica la solicitud como proveniente de un servidor
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -31,7 +31,7 @@ HEADERS = {
     )
 }
 
-
+# le damos como un tipo diccionario de meses para que pueda identificar y comparar el archivo mas reciente
 MESES = {
     "enero": 1,
     "febrero": 2,
@@ -48,7 +48,7 @@ MESES = {
     "diciembre": 12,
 }
 
-
+################################################################################
 def normalizar_texto(texto):
     """
     Convierte el texto a minúsculas, elimina las tildes
@@ -81,7 +81,7 @@ def normalizar_texto(texto):
     )
 
     return texto.strip()
-
+##########################################################################
 
 def extraer_periodo_poblacional(nombre, url):
     """
@@ -102,19 +102,19 @@ def extraer_periodo_poblacional(nombre, url):
     texto_normalizado = normalizar_texto(
         texto_original
     )
-
+#esta buscando para cualquiera de los meses del año
     nombres_meses = "|".join(
         re.escape(mes)
         for mes in MESES
     )
 
-    # Formato: mayo 2026
+    # busca mes seguido de un año
     patron_mes_anio = re.compile(
         rf"\b({nombres_meses})\b"
         rf"(?:\s+de)?\s+"
         rf"(20\d{{2}})\b"
     )
-
+# si hay coincidencias lo guarda
     coincidencia = patron_mes_anio.search(
         texto_normalizado
     )
@@ -127,12 +127,12 @@ def extraer_periodo_poblacional(nombre, url):
         return {
             "anio": anio,
             "mes": mes,
-            "clave": (anio, mes),
+            "clave": (anio, mes),##esta va a permitir comparar los periodos mas adelante
             "texto": f"{nombre_mes} {anio}",
             "codigo": f"{anio}-{mes:02d}",
         }
 
-    # Formato: 2026 mayo
+    # Ahora busca año seguido de mes
     patron_anio_mes = re.compile(
         rf"\b(20\d{{2}})\b"
         rf"(?:\s+de)?\s+"
@@ -200,7 +200,7 @@ def extraer_periodo_poblacional(nombre, url):
 
     return None
 
-
+########################Como ya creamos las herramientas necesarias, ahora si entraremos a la pagina ##########################################
 def buscar_archivos_poblacionales():
     """
     Consulta la página de Supersubsidio y devuelve los enlaces
@@ -211,29 +211,29 @@ def buscar_archivos_poblacionales():
     """
 
     respuesta = requests.get(
-        URL_SUPERSUBSIDIO,
-        timeout=TIMEOUT,
+        URL_SUPERSUBSIDIO, #Dirección que vamos a guardar en config.py
+        timeout=TIMEOUT, # si la pagina no responde no se quede esperando
         headers=HEADERS,
     )
 
     respuesta.raise_for_status()
-
+#Aca devuelve el HTLM y lo va a convertir en un lenguaje que sea entendible
     sopa = BeautifulSoup(
         respuesta.text,
         "html.parser",
     )
 
-    archivos = []
-
+    archivos = [] # aca vamos a guardar los archivos que encontremos
+#Recorre todos los enlaces de la pagina
     for enlace in sopa.find_all(
-        "a",
+        "a", # enlaces 
         href=True,
     ):
         texto = enlace.get_text(
             " ",
             strip=True,
         )
-
+#Obtiene el enlace de la pagina
         href = enlace.get(
             "href",
             "",
@@ -241,7 +241,7 @@ def buscar_archivos_poblacionales():
 
         texto_minuscula = texto.lower()
         href_minuscula = href.lower()
-
+#Este es el patronde texto con el que va a saber que el documento es de nuestro interes porque contiene información poblacional
         es_poblacional = (
             "información poblacional" in texto_minuscula
             or "informacion poblacional" in texto_minuscula
@@ -260,7 +260,7 @@ def buscar_archivos_poblacionales():
             "iconos-archivos"
             in href_minuscula
         )
-
+#Es uno de los filtros para que se quede con un documento descargable y no con iconos decorativos
         if (
             es_poblacional
             and es_documento
@@ -270,7 +270,7 @@ def buscar_archivos_poblacionales():
                 texto
                 or href.rstrip("/").split("/")[-1]
             )
-
+#Esto ya lo convierte en una URL
             url_archivo = urljoin(
                 URL_SUPERSUBSIDIO,
                 href,
@@ -280,7 +280,7 @@ def buscar_archivos_poblacionales():
                 nombre,
                 url_archivo,
             )
-
+#Lo guarda en una lista los archivos que encontro
             archivos.append(
                 {
                     "entidad": "Supersubsidio",
@@ -290,7 +290,7 @@ def buscar_archivos_poblacionales():
                     "periodo": periodo,
                 }
             )
-
+#Va a hacer una limpieza interna poniendo en distintos lugares los unicos y los ya vistos los va a saltar
     archivos_unicos = []
     urls_vistas = set()
 
@@ -300,19 +300,19 @@ def buscar_archivos_poblacionales():
 
         archivos_unicos.append(archivo)
         urls_vistas.add(archivo["url"])
-
+#Ahora va a guardar los que tienen periodo
     archivos_con_periodo = [
         archivo
         for archivo in archivos_unicos
         if archivo["periodo"] is not None
     ]
-
+#los que no puede detectar el periodo los guarda a parte
     archivos_sin_periodo = [
         archivo
         for archivo in archivos_unicos
         if archivo["periodo"] is None
     ]
-
+#Aca va a ordenar los periodos segun la clave que creamos las arriba el resultado 0 sera el mas reciente
     archivos_con_periodo.sort(
         key=lambda archivo: (
             archivo["periodo"]["clave"]
@@ -325,7 +325,7 @@ def buscar_archivos_poblacionales():
         + archivos_sin_periodo
     )
 
-
+#Aca se va a calcular el identificador unico de cada archivo
 def calcular_hash(ruta_archivo):
     """
     Calcula la huella SHA-256 del archivo descargado.
@@ -344,8 +344,8 @@ def calcular_hash(ruta_archivo):
             hash_sha256.update(bloque)
 
     return hash_sha256.hexdigest()
-
-
+####################################################################################
+#Prepara el nombre para ser descargado
 def limpiar_nombre_archivo(nombre_archivo):
     """
     Elimina caracteres no permitidos por Windows.
@@ -377,13 +377,13 @@ def descargar_archivo(
         parents=True,
         exist_ok=True,
     )
-
+#Descarga el archivo que necesitamos
     respuesta = requests.get(
         archivo["url"],
         timeout=TIMEOUT,
         headers=HEADERS,
     )
-
+#Comprueba que la descarga se ejecuto correctamente
     respuesta.raise_for_status()
 
     if len(respuesta.content) < 1000:
@@ -451,7 +451,7 @@ def descargar_archivo(
     )
 
     return ruta_archivo
-
+##############################################################################
 
 def asegurar_estructura_estado(estado):
     """
@@ -510,7 +510,7 @@ def asegurar_estructura_estado(estado):
             }
 
     return estado
-
+##################################################################################33
 
 def determinar_estado_cambio(
     url_anterior,
@@ -527,7 +527,7 @@ def determinar_estado_cambio(
 
     if not url_anterior:
         return "NUEVO ARCHIVO REGISTRADO"
-
+# si lo anterior no es igual a lo actual es una nueva publicación
     if (
         periodo_anterior
         and periodo_actual
@@ -542,8 +542,8 @@ def determinar_estado_cambio(
         return "ARCHIVO ACTUALIZADO"
 
     return "SIN CAMBIOS"
-
-
+#############################################################################
+#Aca se unse todo lo que creamos antes
 def procesar_supersubsidio():
     """
     Busca el archivo poblacional más reciente, lo descarga,
@@ -698,8 +698,8 @@ def procesar_supersubsidio():
         "debe_alertar": debe_alertar,
     }
 
-
-def ejecutar_supersubsidio():
+##################################################################3
+def ejecutar_supersubsidio():   # Ejecuta todo el proceso y controla posibles errores
     """
     Ejecuta el proceso con control de errores.
     """
@@ -739,6 +739,6 @@ def ejecutar_supersubsidio():
         return None
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": #ejecuta todo lo que pusimos en esta sección
     ejecutar_supersubsidio()
     

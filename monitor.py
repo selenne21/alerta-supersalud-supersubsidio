@@ -9,8 +9,8 @@ Ejecuta en un solo proceso:
 4. Supersalud - EMP.
 5. Envía correo solo si detecta cambios.
 """
-
-from correo import enviar_correo
+#Aca el monitor se trae las funciones de los .py  que va a revisar 
+from correo import enviar_correo    
 from supersalud import ejecutar_supersalud
 from supersubsidio import ejecutar_supersubsidio
 
@@ -26,17 +26,17 @@ def ejecutar_monitor():
     print("INICIO DEL MONITOR")
     print("#" * 70)
 
-    resultados = []
+    resultados = []  #Esta es la lista donde se guardaran los resultados que encuentre el monitor
 
     print("\nRevisando Supersubsidio...")
-
+#el try se pone porque las paginas externas pueden tener fallos, esto evita que se caiga toda la automatización
     try:
-        resultado_supersubsidio = ejecutar_supersubsidio()
+        resultado_supersubsidio = ejecutar_supersubsidio() #se ejecuta la función y que guarde el resultado
 
-        if resultado_supersubsidio is not None:
+        if resultado_supersubsidio is not None: # si hay resultado agrega el resultado
             resultados.append(resultado_supersubsidio)
 
-    except Exception as error:
+    except Exception as error: # si hay error lo guarda en una variable para no dañar el proceso
         print("\n" + "!" * 70)
         print("ERROR GENERAL EN SUPERSUBSIDIO")
         print(f"{type(error).__name__}: {error}")
@@ -44,7 +44,7 @@ def ejecutar_monitor():
 
     print("\nRevisando Supersalud...")
 
-    try:
+    try:                #basicamente el mismo proceso que con supersubsidio
         resultados_supersalud = ejecutar_supersalud()
 
         if resultados_supersalud:
@@ -55,7 +55,7 @@ def ejecutar_monitor():
         print("ERROR GENERAL EN SUPERSALUD")
         print(f"{type(error).__name__}: {error}")
         print("!" * 70)
-
+# Aca se queda solo con los resultados en los que debe alertar
     resultados_para_alerta = [
         resultado
         for resultado in resultados
@@ -100,5 +100,5 @@ def ejecutar_monitor():
     print("#" * 70)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # lo ejecuta la funcion del monitor que creamos
     ejecutar_monitor()

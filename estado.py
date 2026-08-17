@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 
 ARCHIVO_ESTADO = Path("estado.json")
-
-
+# Este archivo permite leer el estado anterior
+# y guardar el nuevo estado en estado.json.
 def cargar_estado():
     """
     Lee estado.json.

@@ -15,18 +15,18 @@ Criterio de selección:
 3. Fecha de modificación más reciente.
 4. Comparación del hash SHA-256 para detectar cambios reales.
 """
+#Vamos a usar el servicio  API REST que ya ofrece ArcGIS de Supersalud.
+from datetime import datetime #Convierte las fechas que entrega ArcGIS a fechas entendibles
+from pathlib import Path #Manejar la carpeta descargas y las rutas de los Excel
+import hashlib #Calcula el id unico
+import re #Buscar patrones dentro de los títulos
+import unicodedata # Quitar tildes/normalizar texto
 
-from datetime import datetime
-from pathlib import Path
-import hashlib
-import re
-import unicodedata
+import requests #Comunicarnos con ArcGIS por internet
 
-import requests
+from estado import cargar_estado, guardar_estado #Aca se guarda el ultimo registro para recordar lo ultimo que visualizo
 
-from estado import cargar_estado, guardar_estado
-
-
+#Convierte en variables donde se busca el archivo y donde se descarga
 URL_BUSCADOR = (
     "https://mapas.supersalud.gov.co/"
     "arcgisportal/sharing/rest/search"
@@ -36,7 +36,7 @@ URL_DESCARGA_BASE = (
     "https://mapas.supersalud.gov.co/"
     "arcgisportal/sharing/rest/content/items"
 )
-
+#Los excel que encontremos se descargaran aca
 CARPETA_DESCARGAS = Path("descargas")
 
 HEADERS = {
@@ -45,10 +45,10 @@ HEADERS = {
         "AppleWebKit/537.36 Chrome/120 Safari/537.36"
     )
 }
-
+#Aca le estamos dando la categoria de lo que debe revisar
 CATEGORIAS = ("EPS", "IPS", "EMP")
 
-
+#Como estas plataformas publican mucha información vamos a generarle un patron de la información que queremos traer ( riesgo que cambie sustancialmente los nombres y no se reconozcan)
 # Los patrones se escriben sin tildes porque los títulos
 # se normalizan antes de compararlos.
 PATRONES = {
@@ -82,7 +82,7 @@ PATRONES = {
     ],
 }
 
-
+#Se hace para que el programa lea los meses y pueda comparalos
 MESES = {
     "enero": 1,
     "febrero": 2,
@@ -109,7 +109,7 @@ TRIMESTRES = {
     "cuarto": 12,
 }
 
-
+#Se hace lo mismo con los trimestres
 SEMESTRES = {
     "primer": 6,
     "primero": 6,
@@ -150,7 +150,7 @@ def normalizar_texto(texto):
 
     return texto.strip()
 
-
+#Arregla la fecha
 def convertir_fecha(fecha_milisegundos):
     """
     Convierte la fecha interna de ArcGIS
@@ -166,20 +166,20 @@ def convertir_fecha(fecha_milisegundos):
 
     return fecha.strftime("%Y-%m-%d %H:%M:%S")
 
-
+#Revisa si el título que devolvió ArcGIS realmente corresponde a la categoría que estamos buscando.
 def titulo_valido(categoria, titulo):
     """
     Comprueba que el título pertenezca a la serie correcta
     de EPS, IPS o EMP.
     """
-
+#Aca va a lanzar un error si esa categoria no esta en el codigo
     if categoria not in PATRONES:
         raise ValueError(
             f"La categoría {categoria} no está configurada."
         )
 
     titulo_normalizado = normalizar_texto(titulo)
-
+#Revisa si los nombres de los archivos coinciden con los patrones que le suministramos en cada categoria
     return any(
         patron in titulo_normalizado
         for patron in PATRONES[categoria]
@@ -207,22 +207,22 @@ def extraer_periodo(titulo):
     """
 
     titulo_normalizado = normalizar_texto(titulo)
-
+#Prepara los meses para buscarlos
     nombres_meses = "|".join(
         re.escape(mes)
         for mes in MESES
     )
-
+# Eso crea una regla de búsqueda/ “mayo 2026”, “junio 2026”, “diciembre 2025”,
     patron_mes = re.compile(
         rf"\b({nombres_meses})\b"
         rf"(?:\s+de)?\s+"
         rf"(20\d{{2}})\b"
     )
-
+# Busca todas las coincidencias de mes y año en el título
     coincidencias_mes = list(
         patron_mes.finditer(titulo_normalizado)
     )
-
+#Toma la última coincidencia encontrada
     if coincidencias_mes:
         coincidencia = coincidencias_mes[-1]
 
@@ -234,10 +234,10 @@ def extraer_periodo(titulo):
             "anio": anio,
             "mes_final": numero_mes,
             "texto": f"{nombre_mes} {anio}",
-            "clave": (anio, numero_mes),
+            "clave": (anio, numero_mes), #esta clave nos va a ayudar a despues ordenar y comparar fechas
             "tipo": "mes",
         }
-
+# si no encuentra mes sigue con trimestre 
     patron_trimestre = re.compile(
         r"\b(primer|primero|segundo|tercer|tercero|cuarto)"
         r"\s+trimestre"
@@ -269,7 +269,7 @@ def extraer_periodo(titulo):
             "clave": (anio, mes_final),
             "tipo": "trimestre",
         }
-
+# continua con semestre
     patron_semestre = re.compile(
         r"\b(primer|primero|segundo)"
         r"\s+semestre"
@@ -301,17 +301,17 @@ def extraer_periodo(titulo):
             "clave": (anio, mes_final),
             "tipo": "semestre",
         }
-
+# si no encuentra por nunguna de las tres
     return None
-
-
+#Aca aun no hemos decidido cual es el mas reciente solo estamos ordenando para que mas adelante podamos comparar
+##################################################################################
 def calcular_hash(ruta_archivo):
     """
     Calcula la huella SHA-256 del archivo descargado.
     """
 
     hash_sha256 = hashlib.sha256()
-
+#Abrimos y leemos el contenido para calcular el id
     with open(ruta_archivo, "rb") as archivo:
         for bloque in iter(
             lambda: archivo.read(8192),
@@ -321,7 +321,7 @@ def calcular_hash(ruta_archivo):
 
     return hash_sha256.hexdigest()
 
-
+###############################En este momento si vamos a consultar##########################
 def consultar_resultados_arcgis(categoria):
     """
     Consulta todos los resultados disponibles en ArcGIS
@@ -330,21 +330,21 @@ def consultar_resultados_arcgis(categoria):
     ArcGIS devuelve máximo 100 resultados por página,
     por eso la consulta utiliza paginación.
     """
-
+#Aca vamos a poner los resultados
     resultados_totales = []
     inicio = 1
     cantidad_por_pagina = 100
-
+#Va a consultar ArcGIS por grupos de hasta 100 resultados, empezando desde el primero, y seguiré consultando mientras haya más.
     while True:
         parametros = {
-            "f": "json",
-            "q": categoria,
-            "sortField": "created",
+            "f": "json", #Forma de ordenar los datos
+            "q": categoria, # busca entre las categorias que necesitabamos
+            "sortField": "created",#Se ordenan los datos segun su fecha de creación
             "sortOrder": "desc",
             "num": cantidad_por_pagina,
             "start": inicio,
         }
-
+#Estamos haciendo una solicitud de busqueda (Manda la solicitud al buscador de la API REST de ArcGIS de Supersalud)
         respuesta = requests.get(
             URL_BUSCADOR,
             params=parametros,
@@ -353,9 +353,9 @@ def consultar_resultados_arcgis(categoria):
         )
 
         respuesta.raise_for_status()
-
+#Convertimos la respuesta segun JSON
         datos = respuesta.json()
-
+# si no exiten resultados dame una lista vacia
         resultados_pagina = datos.get(
             "results",
             [],
@@ -364,7 +364,7 @@ def consultar_resultados_arcgis(categoria):
         resultados_totales.extend(
             resultados_pagina
         )
-
+#Si todavia hay resultados extiende la busqueda
         siguiente_inicio = datos.get(
             "nextStart",
             -1,
@@ -374,13 +374,13 @@ def consultar_resultados_arcgis(categoria):
             siguiente_inicio in (-1, None)
             or not resultados_pagina
         ):
-            break
+            break #Aca ya no sigue preguntando
 
         inicio = siguiente_inicio
 
     return resultados_totales
 
-
+#Vamos a empezar a ordenarlo al mas reciente
 def buscar_archivo_mas_reciente(categoria):
     """
     Busca los Excel válidos de una categoría.
@@ -423,7 +423,7 @@ def buscar_archivo_mas_reciente(categoria):
             "modified",
             0,
         )
-
+#Filtra por si no es un candidato ni cumple los requisitos que necesitamos le dice que continue
         if not identificador:
             continue
 
