@@ -4,7 +4,7 @@ on:
   workflow_dispatch:     # Permite correr la automatización desde GitHub
 
   schedule:
-    - cron: "0 * * * *"   #Hace que corra en el minuto 0 de cada hora 
+    - cron: "0 * * * *"   #Hace que corra en el minuto 0 de cada hora  
 
 permissions:
   contents: write         #le da permiso de modificar el repo
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest #Genera una maquina nueva para ejecutar el programa
 
     steps:
-      - name: Descargar repositorio #descarga el proyecto 
+      - name: Descargar repositorio #descarga el proyecto  
         uses: actions/checkout@v4
 
       - name: Configurar Python    #treae a python
@@ -27,9 +27,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Diagnosticar certificado Supersubsidio
+      - name: Configurar certificado Supersubsidio
         run: |
-          echo | openssl s_client -connect www.ssf.gov.co:443 -servername www.ssf.gov.co -showcerts
+          curl -L "https://crt.sh/?d=4267304690" -o sectigo-r36.crt
+          sudo cp sectigo-r36.crt /usr/local/share/ca-certificates/sectigo-r36.crt
+          sudo update-ca-certificates
 
       - name: Ejecutar monitor #Vamos a definir las variables de entorno
         env:
@@ -47,7 +49,7 @@ jobs:
 
           git add estado.json
 
-          if git diff --cached --quiet; then  
+          if git diff --cached --quiet; then   
             echo "No hubo cambios en estado.json"
           else
             git commit -m "Actualiza estado del monitor"
