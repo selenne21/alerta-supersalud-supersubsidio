@@ -29,9 +29,12 @@ jobs:
 
       - name: Configurar certificado Supersubsidio
         run: |
-          curl -L "https://crt.sh/?d=4267304690" -o sectigo-r36.crt
-          sudo cp sectigo-r36.crt /usr/local/share/ca-certificates/sectigo-r36.crt
-          sudo update-ca-certificates
+          curl -L "https://crt.sh/?d=4267304690" -o sectigo-r36.der
+          openssl x509 -inform DER -in sectigo-r36.der -out sectigo-r36.pem
+          python -c "import certifi; print(certifi.where())" > ruta_certifi.txt
+          CERTIFI_PATH=$(cat ruta_certifi.txt)
+          cp "$CERTIFI_PATH" bundle-supersubsidio.pem
+          cat sectigo-r36.pem >> bundle-supersubsidio.pem
 
       - name: Ejecutar monitor #Vamos a definir las variables de entorno
         env:
@@ -40,6 +43,8 @@ jobs:
           CORREO_USUARIO: ${{ secrets.CORREO_USUARIO }}
           CORREO_CONTRASENA: ${{ secrets.CORREO_CONTRASENA }}
           CORREO_DESTINATARIO: ${{ secrets.CORREO_DESTINATARIO }}
+          REQUESTS_CA_BUNDLE: ${{ github.workspace }}/bundle-supersubsidio.pem
+          SSL_CERT_FILE: ${{ github.workspace }}/bundle-supersubsidio.pem
         run: python monitor.py
 
       - name: Guardar estado actualizado
@@ -49,7 +54,7 @@ jobs:
 
           git add estado.json
 
-          if git diff --cached --quiet; then   
+          if git diff --cached --quiet; then    
             echo "No hubo cambios en estado.json"
           else
             git commit -m "Actualiza estado del monitor"
