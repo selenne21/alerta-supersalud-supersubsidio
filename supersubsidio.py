@@ -213,8 +213,7 @@ def buscar_archivos_poblacionales():
     respuesta = requests.get(
     URL_SUPERSUBSIDIO,
     timeout=TIMEOUT,
-    headers=HEADERS,
-    verify="/etc/ssl/certs/ca-certificates.crt",
+    headers=HEADERS
      )
 
     respuesta.raise_for_status()
