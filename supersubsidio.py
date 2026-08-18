@@ -211,10 +211,11 @@ def buscar_archivos_poblacionales():
     """
 
     respuesta = requests.get(
-        URL_SUPERSUBSIDIO, #Dirección que vamos a guardar en config.py
-        timeout=TIMEOUT, # si la pagina no responde no se quede esperando
-        headers=HEADERS,
-    )
+    URL_SUPERSUBSIDIO,
+    timeout=TIMEOUT,
+    headers=HEADERS,
+    verify="/etc/ssl/certs/ca-certificates.crt",
+     )
 
     respuesta.raise_for_status()
 #Aca devuelve el HTLM y lo va a convertir en un lenguaje que sea entendible
