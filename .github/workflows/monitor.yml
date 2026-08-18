@@ -4,7 +4,7 @@ on:
   workflow_dispatch:     # Permite correr la automatización desde GitHub
 
   schedule:
-    - cron: "0 * * * *"   #Hace que corra en el minuto 0 de cada hora  
+    - cron: "0 * * * *"   #Hace que corra en el minuto 0 de cada hora   
 
 permissions:
   contents: write         #le da permiso de modificar el repo
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest #Genera una maquina nueva para ejecutar el programa
 
     steps:
-      - name: Descargar repositorio #descarga el proyecto  
+      - name: Descargar repositorio #descarga el proyecto   
         uses: actions/checkout@v4
 
       - name: Configurar Python    #treae a python
@@ -27,6 +27,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Configurar certificado Supersubsidio
+        run: |
+          curl -fL --retry 3 --connect-timeout 15 \
+            "http://crt.sectigo.com/SectigoPublicServerAuthenticationCADVR36.crt" \
+            -o sectigo-r36.der
+
+          openssl x509 \
+            -inform DER \
+            -in sectigo-r36.der \
+            -out sectigo-r36.pem
+
+          CERTIFI_PATH=$(python -c "import certifi; print(certifi.where())")
+
+          cp "$CERTIFI_PATH" bundle-supersubsidio.pem
+          cat sectigo-r36.pem >> bundle-supersubsidio.pem
+
       - name: Ejecutar monitor #Vamos a definir las variables de entorno
         env:
           SMTP_SERVIDOR: ${{ secrets.SMTP_SERVIDOR }}
@@ -34,6 +50,7 @@ jobs:
           CORREO_USUARIO: ${{ secrets.CORREO_USUARIO }}
           CORREO_CONTRASENA: ${{ secrets.CORREO_CONTRASENA }}
           CORREO_DESTINATARIO: ${{ secrets.CORREO_DESTINATARIO }}
+          REQUESTS_CA_BUNDLE: ${{ github.workspace }}/bundle-supersubsidio.pem
         run: python monitor.py
 
       - name: Guardar estado actualizado
@@ -43,7 +60,7 @@ jobs:
 
           git add estado.json
 
-          if git diff --cached --quiet; then    
+          if git diff --cached --quiet; then     
             echo "No hubo cambios en estado.json"
           else
             git commit -m "Actualiza estado del monitor"
