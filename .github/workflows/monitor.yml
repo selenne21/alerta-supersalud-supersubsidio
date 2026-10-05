@@ -62,7 +62,18 @@ jobs:
           cat sectigo-r36.pem >> bundle-supersubsidio.pem
           cat sectigo-r46.pem >> bundle-supersubsidio.pem
           cat sectigo-r46-usertrust.pem >> bundle-supersubsidio.pem
-
+      - name: Diagnosticar certificado Supersubsidio
+        run: |
+          echo | openssl s_client \
+            -connect www.ssf.gov.co:443 \
+            -servername www.ssf.gov.co \
+            -showcerts 2>&1
+      - name: Diagnosticar certificado Supersubsidio
+        run: |
+          echo | openssl s_client \
+            -connect www.ssf.gov.co:443 \
+            -servername www.ssf.gov.co \
+            -showcerts 2>&1
       - name: Ejecutar monitor #Vamos a definir las variables de entorno
         env:
           SMTP_SERVIDOR: ${{ secrets.SMTP_SERVIDOR }}
