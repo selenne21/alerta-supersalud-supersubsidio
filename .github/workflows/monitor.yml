@@ -30,7 +30,7 @@ jobs:
       - name: Configurar certificado Supersubsidio
         run: |
           curl -fL --retry 3 --connect-timeout 15 \
-            "http://crt.sectigo.com/SectigoPublicServerAuthenticationCADVR36.crt" \
+            "http://crt.sectigo.com/SectigoPublicServerAuthenticationCAOVR36.crt" \
             -o sectigo-r36.der
 
           curl -fL --retry 3 --connect-timeout 15 \
