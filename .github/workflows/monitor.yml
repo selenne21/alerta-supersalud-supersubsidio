@@ -27,7 +27,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      -      - name: Configurar certificado Supersubsidio
+      - name: Configurar certificado Supersubsidio
         run: |
           curl -fL --retry 3 --connect-timeout 15 \
             "http://crt.sectigo.com/SectigoPublicServerAuthenticationCADVR36.crt" \
