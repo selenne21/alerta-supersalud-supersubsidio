@@ -27,7 +27,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Configurar certificado Supersubsidio
+      -      - name: Configurar certificado Supersubsidio
         run: |
           curl -fL --retry 3 --connect-timeout 15 \
             "http://crt.sectigo.com/SectigoPublicServerAuthenticationCADVR36.crt" \
@@ -36,6 +36,10 @@ jobs:
           curl -fL --retry 3 --connect-timeout 15 \
             "http://crt.sectigo.com/SectigoPublicServerAuthenticationRootR46.crt" \
             -o sectigo-r46.der
+
+          curl -fL --retry 3 --connect-timeout 15 \
+            "http://crt.sectigo.com/SectigoPublicServerAuthenticationRootR46_USERTrust.crt" \
+            -o sectigo-r46-usertrust.der
 
           openssl x509 \
             -inform DER \
@@ -47,11 +51,17 @@ jobs:
             -in sectigo-r46.der \
             -out sectigo-r46.pem
 
+          openssl x509 \
+            -inform DER \
+            -in sectigo-r46-usertrust.der \
+            -out sectigo-r46-usertrust.pem
+
           CERTIFI_PATH=$(python -c "import certifi; print(certifi.where())")
 
           cp "$CERTIFI_PATH" bundle-supersubsidio.pem
           cat sectigo-r36.pem >> bundle-supersubsidio.pem
           cat sectigo-r46.pem >> bundle-supersubsidio.pem
+          cat sectigo-r46-usertrust.pem >> bundle-supersubsidio.pem
 
       - name: Ejecutar monitor #Vamos a definir las variables de entorno
         env:
