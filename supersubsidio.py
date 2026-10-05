@@ -699,26 +699,65 @@ def procesar_supersubsidio():
     }
 
 ##################################################################3
-def ejecutar_supersubsidio():   # Ejecuta todo el proceso y controla posibles errores
+def ejecutar_supersubsidio():
     """
     Ejecuta el proceso con control de errores.
+    Si Supersubsidio no puede consultarse, devuelve una alerta
+    para que monitor.py pueda enviarla por correo.
     """
 
     try:
         return procesar_supersubsidio()
 
-    except requests.RequestException as error:
+    except requests.exceptions.SSLError as error:
         print("\n" + "!" * 70)
-        print("ERROR DE CONEXIÓN EN SUPERSUBSIDIO")
-
+        print("ERROR DE CERTIFICADO SSL EN SUPERSUBSIDIO")
         print(
             f"{type(error).__name__}: "
             f"{error}"
         )
-
         print("!" * 70)
 
-        return None
+        return {
+            "entidad": "Supersubsidio",
+            "categoria": "POBLACIONAL",
+            "nombre": "Error de acceso a Supersubsidio",
+            "url": URL_SUPERSUBSIDIO,
+            "ruta": None,
+            "hash": "",
+            "periodo": "No disponible",
+            "periodo_clave": "",
+            "fecha_actualizacion": "No disponible",
+            "estado_cambio": "ERROR DE CERTIFICADO SSL",
+            "debe_alertar": True,
+            "tipo_alerta": "ERROR",
+            "detalle_error": str(error),
+        }
+
+    except requests.RequestException as error:
+        print("\n" + "!" * 70)
+        print("ERROR DE CONEXIÓN EN SUPERSUBSIDIO")
+        print(
+            f"{type(error).__name__}: "
+            f"{error}"
+        )
+        print("!" * 70)
+
+        return {
+            "entidad": "Supersubsidio",
+            "categoria": "POBLACIONAL",
+            "nombre": "Error de acceso a Supersubsidio",
+            "url": URL_SUPERSUBSIDIO,
+            "ruta": None,
+            "hash": "",
+            "periodo": "No disponible",
+            "periodo_clave": "",
+            "fecha_actualizacion": "No disponible",
+            "estado_cambio": "ERROR DE CONEXIÓN",
+            "debe_alertar": True,
+            "tipo_alerta": "ERROR",
+            "detalle_error": str(error),
+        }
 
     except (
         ValueError,
@@ -728,15 +767,27 @@ def ejecutar_supersubsidio():   # Ejecuta todo el proceso y controla posibles er
     ) as error:
         print("\n" + "!" * 70)
         print("ERROR AL PROCESAR SUPERSUBSIDIO")
-
         print(
             f"{type(error).__name__}: "
             f"{error}"
         )
-
         print("!" * 70)
 
-        return None
+        return {
+            "entidad": "Supersubsidio",
+            "categoria": "POBLACIONAL",
+            "nombre": "Error al procesar Supersubsidio",
+            "url": URL_SUPERSUBSIDIO,
+            "ruta": None,
+            "hash": "",
+            "periodo": "No disponible",
+            "periodo_clave": "",
+            "fecha_actualizacion": "No disponible",
+            "estado_cambio": "ERROR DE PROCESAMIENTO",
+            "debe_alertar": True,
+            "tipo_alerta": "ERROR",
+            "detalle_error": str(error),
+        }
 
 
 if __name__ == "__main__": #ejecuta todo lo que pusimos en esta sección
