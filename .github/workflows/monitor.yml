@@ -6,7 +6,7 @@ on:
   schedule:
     - cron: "0 * * * *"   #Hace que corra en el minuto 0 de cada hora   
 
-permissions:
+permissions: 
   contents: write         #le da permiso de modificar el repo
 
 jobs:
@@ -68,12 +68,7 @@ jobs:
             -connect www.ssf.gov.co:443 \
             -servername www.ssf.gov.co \
             -showcerts 2>&1
-      - name: Diagnosticar certificado Supersubsidio
-        run: |
-          echo | openssl s_client \
-            -connect www.ssf.gov.co:443 \
-            -servername www.ssf.gov.co \
-            -showcerts 2>&1
+    
       - name: Ejecutar monitor #Vamos a definir las variables de entorno
         env:
           SMTP_SERVIDOR: ${{ secrets.SMTP_SERVIDOR }}
